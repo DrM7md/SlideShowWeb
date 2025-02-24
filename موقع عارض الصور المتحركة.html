@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>عارض الصور المتحرك </title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(135deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 26px;
+      font-weight: 600;
+      font-family: 'Tajawal', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+       border: none;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .btn i {
+      font-size: 1.1em;
+    }
+
+    .btn-folder {
+      background: linear-gradient(135deg, #60A5FA 0%, #2563EB 100%);
+      color: white;
+    }
+    .btn-play {
+      background: linear-gradient(135deg, #34D399 0%, #059669 100%);
+      color: white;
+      min-width: 120px;
+    }
+    .btn-stop {
+      background: linear-gradient(135deg, #F87171 0%, #DC2626 100%);
+      color: white;
+    }
+    .btn-shuffle {
+      background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+      color: white;
+    }
+    .btn-fullscreen {
+      background: linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%);
+      color: white;
+    }
+    .input-group {
+      background: white;
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      white-space: nowrap;
+    }
+    input[type="number"] {
+      width: 4rem;
+      padding: 0.375rem;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1rem;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .status-group {
+      display: flex;
+      gap: 1.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      white-space: nowrap;
+    }
+    .slide-container {
+      position: relative;
+      background: #1a1a1a;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      aspect-ratio: 16/9;
+    }
+    .slide-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .slide-image.show {
+      opacity: 1;
+    }
+    #galleryView {
+      display: none;
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    #galleryView.active {
+      display: block;
+    }
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+    #gallery img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    #gallery img:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+    <div class="glass-card">
+      <div class="header">
+        <button id="folderSelect" class="btn btn-folder">
+          <i class="fas fa-folder-open"></i>
+          <span>اختيار المجلد</span>
+        </button>
+        
+        <div class="input-group">
+          <label class="font-medium text-gray-700">الفاصل الزمني:</label>
+          <input type="number" id="intervalInput" value="5" min="1">
+          <span class="font-medium text-gray-700">ثواني</span>
+        </div>
+        
+        <button id="playButton" class="btn btn-play" disabled>
+          <i class="fas fa-play"></i>
+          <span class="font-medium">تشغيل</span>
+        </button>
+        
+        <button id="shuffleButton" class="btn btn-shuffle">
+          <i class="fas fa-random"></i>
+          <span class="font-medium">ترتيب عشوائي</span>
+        </button>
+        
+        <button id="fullscreenButton" class="btn btn-fullscreen">
+          <i class="fas fa-expand"></i>
+          <span class="font-medium">شاشة كاملة</span>
+        </button>
+        
+        <div class="status-group">
+          <span id="imageCounter" class="font-medium text-gray-700">الصورة: 0 من 0</span>
+          <span id="timeRemaining" class="font-medium text-blue-600">الوقت المتبقي: 0 ثواني</span>
+        </div>
+        
+        <button id="galleryButton" class="btn btn-folder">
+          <i class="fas fa-images"></i>
+          <span class="font-medium">عرض المعرض</span>
+        </button>
+      </div>
+      
+      <div id="slideshow" class="slide-container mt-4">
+        <div id="initialMessage" class="flex items-center justify-center h-full text-center text-gray-600 text-xl">
+          الرجاء اختيار مجلد يحتوي على الصور للبدء
+        </div>
+        <img id="currentImage" src="" alt="صورة العرض" class="slide-image">
+      </div>
+      
+      <div id="galleryView" class="mt-4">
+        <div id="gallery">
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let images = [];
+    let currentIndex = 0;
+    let isPlaying = false;
+    let timer;
+    let timeLeft;
+    let selectedDir = null;
+    let isShuffle = false;
+    
+    const playButton = document.getElementById('playButton');
+    const intervalInput = document.getElementById('intervalInput');
+    const currentImage = document.getElementById('currentImage');
+    const imageCounter = document.getElementById('imageCounter');
+    const timeRemaining = document.getElementById('timeRemaining');
+    const folderSelect = document.getElementById('folderSelect');
+    const initialMessage = document.getElementById('initialMessage');
+    const shuffleButton = document.getElementById('shuffleButton');
+    const fullscreenButton = document.getElementById('fullscreenButton');
+    const galleryButton = document.getElementById('galleryButton');
+    const slideshow = document.getElementById('slideshow');
+    const galleryView = document.getElementById('galleryView');
+    const gallery = document.getElementById('gallery');
+    
+    folderSelect.addEventListener('click', async () => {
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+        selectedDir = dirHandle;
+        await loadImages(dirHandle);
+        playButton.disabled = false;
+        initialMessage.style.display = 'none';
+        currentImage.style.display = 'block';
+      } catch (error) {
+        console.error('Error selecting directory:', error);
+      }
+    });
+    
+    async function loadImages(dirHandle) {
+      try {
+        images = [];
+        gallery.innerHTML = '';
+        for await (const entry of dirHandle.values()) {
+          if (entry.kind === 'file') {
+            const name = entry.name.toLowerCase();
+            if (name.endsWith('.jpg') || name.endsWith('.jpeg') ||
+                name.endsWith('.png') || name.endsWith('.gif')) {
+              const file = await entry.getFile();
+              const imageUrl = URL.createObjectURL(file);
+              images.push(imageUrl);
+              addImageToGallery(imageUrl);
+            }
+          }
+        }
+        updateImageCounter();
+        if (images.length > 0) {
+          showImage(0);
+        } else {
+          alert('لم يتم العثور على صور في المجلد المحدد');
+        }
+      } catch (error) {
+        console.error('Error loading images:', error);
+        alert('حدث خطأ في تحميل الصور');
+      }
+    }
+    
+    function addImageToGallery(src) {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = "صورة مصغرة";
+      img.className = "w-full h-40 object-cover rounded-lg cursor-pointer transition-transform hover:scale-105";
+      img.addEventListener('click', () => openImageInModal(src));
+      gallery.appendChild(img);
+    }
+    
+    function showImage(index) {
+      if (images.length > 0) {
+        currentImage.classList.remove('show');
+        setTimeout(() => {
+          currentImage.src = images[index];
+          currentImage.classList.add('show');
+          updateImageCounter();
+        }, 100);
+      }
+    }
+    
+    function updateImageCounter() {
+      imageCounter.textContent = `الصورة: ${currentIndex + 1} من ${images.length}`;
+    }
+    
+    function togglePlayback() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        playButton.innerHTML = '<i class="fas fa-pause"></i><span class="font-medium">إيقاف</span>';
+        playButton.classList.remove('btn-play');
+        playButton.classList.add('btn-stop');
+        startSlideshow();
+      } else {
+        playButton.innerHTML = '<i class="fas fa-play"></i><span class="font-medium">تشغيل</span>';
+        playButton.classList.add('btn-play');
+        playButton.classList.remove('btn-stop');
+        stopSlideshow();
+      }
+    }
+    
+    function startSlideshow() {
+      timeLeft = parseInt(intervalInput.value);
+      updateTimer();
+      timer = setInterval(() => {
+        timeLeft--;
+        updateTimer();
+        if (timeLeft <= 0) {
+          if (isShuffle) {
+            currentIndex = Math.floor(Math.random() * images.length);
+          } else {
+            currentIndex = (currentIndex + 1) % images.length;
+          }
+          showImage(currentIndex);
+          timeLeft = parseInt(intervalInput.value);
+        }
+      }, 1000);
+    }
+    
+    function stopSlideshow() {
+      clearInterval(timer);
+      timeLeft = parseInt(intervalInput.value);
+      updateTimer();
+    }
+    
+    function updateTimer() {
+      timeRemaining.textContent = `الوقت المتبقي: ${timeLeft} ثواني`;
+    }
+    
+    playButton.addEventListener('click', togglePlayback);
+    intervalInput.addEventListener('change', () => {
+      if (isPlaying) {
+        stopSlideshow();
+        startSlideshow();
+      }
+    });
+    
+    shuffleButton.addEventListener('click', () => {
+      isShuffle = !isShuffle;
+      if (isShuffle) {
+        shuffleButton.innerHTML = '<i class="fas fa-list"></i><span class="font-medium">ترتيب طبيعي</span>';
+      } else {
+        shuffleButton.innerHTML = '<i class="fas fa-random"></i><span class="font-medium">ترتيب عشوائي</span>';
+      }
+    });
+    
+    fullscreenButton.addEventListener('click', () => {
+      const elem = document.querySelector('.slide-container');
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+        fullscreenButton.innerHTML = '<i class="fas fa-expand"></i><span class="font-medium">شاشة كاملة</span>';
+      } else if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+        fullscreenButton.innerHTML = '<i class="fas fa-compress"></i><span class="font-medium">إنهاء الشاشة الكاملة</span>';
+      }
+    });
+
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        fullscreenButton.innerHTML = '<i class="fas fa-expand"></i><span class="font-medium">شاشة كاملة</span>';
+      }
+    });
+    
+    galleryButton.addEventListener('click', () => {
+      if (galleryView.classList.contains('active')) {
+        galleryView.classList.remove('active');
+        slideshow.classList.remove('hidden');
+        galleryButton.innerHTML = '<i class="fas fa-images"></i><span class="font-medium">عرض المعرض</span>';
+      } else {
+        galleryView.classList.add('active');
+        slideshow.classList.add('hidden');
+        galleryButton.innerHTML = '<i class="fas fa-play-circle"></i><span class="font-medium">عرض الشرائح</span>';
+      }
+    });
+    
+    function openImageInModal(src) {
+      const modal = document.createElement('div');
+      modal.style.position = 'fixed';
+      modal.style.top = 0;
+      modal.style.left = 0;
+      modal.style.width = '100%';
+      modal.style.height = '100%';
+      modal.style.background = 'rgba(0,0,0,0.9)';
+      modal.style.display = 'flex';
+      modal.style.alignItems = 'center';
+      modal.style.justifyContent = 'center';
+      modal.style.zIndex = 1000;
+      modal.style.cursor = 'pointer';
+      
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.maxWidth = '90%';
+      img.style.maxHeight = '90%';
+      img.style.borderRadius = '8px';
+      img.style.objectFit = 'contain';
+      img.style.transition = 'transform 0.3s ease';
+      
+      const closeButton = document.createElement('button');
+      closeButton.innerHTML = '<i class="fas fa-times"></i>';
+      closeButton.style.position = 'absolute';
+      closeButton.style.top = '20px';
+      closeButton.style.right = '20px';
+      closeButton.style.background = 'rgba(255,255,255,0.2)';
+      closeButton.style.border = 'none';
+      closeButton.style.borderRadius = '50%';
+      closeButton.style.width = '40px';
+      closeButton.style.height = '40px';
+      closeButton.style.color = 'white';
+      closeButton.style.fontSize = '20px';
+      closeButton.style.cursor = 'pointer';
+      closeButton.style.display = 'flex';
+      closeButton.style.alignItems = 'center';
+      closeButton.style.justifyContent = 'center';
+      closeButton.style.transition = 'background 0.3s ease';
+      
+      closeButton.addEventListener('mouseover', () => {
+        closeButton.style.background = 'rgba(255,255,255,0.3)';
+      });
+      
+      closeButton.addEventListener('mouseout', () => {
+        closeButton.style.background = 'rgba(255,255,255,0.2)';
+      });
+      
+      modal.appendChild(img);
+      modal.appendChild(closeButton);
+      
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.remove();
+        }
+      });
+      
+      closeButton.addEventListener('click', () => {
+        modal.remove();
+      });
+      
+      document.body.appendChild(modal);
+    }
+  </script>
+</body>
+</html>
